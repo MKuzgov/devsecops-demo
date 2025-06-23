@@ -1,0 +1,25 @@
+name: Security Scan
+on: [push, pull_request]
+
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 1. Поиск уязвимостей в коде (Semgrep)
+      - name: Run Semgrep
+        uses: returntocorp/semgrep-action@v1
+        with:
+          config: p/security-audit  # Правила для безопасности
+
+      # 2. Поиск секретов (TruffleHog)
+      - name: Find Secrets
+        run: |
+          docker run --rm -v "$(pwd):/app" trufflesecurity/trufflehog:latest \
+          git file:///app --only-verified
+
+      # 3. Проверка зависимостей (Trivy)
+      - name: Scan Dependencies
+        run: |
+          trivy fs --security-checks vuln --exit-code 1 .
